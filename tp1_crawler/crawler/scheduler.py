@@ -1,7 +1,9 @@
-from urllib import robotparser
 from util.threads import synchronized
 from collections import OrderedDict
 from .domain import Domain
+from urllib.parse import urlparse
+import urllib.robotparser
+import time
 
 class Scheduler():
     #tempo (em segundos) entre as requisições
@@ -26,6 +28,7 @@ class Scheduler():
         self.dic_url_per_domain = OrderedDict()
         self.set_discovered_urls = set()
         self.dic_robots_per_domain = {}
+        [self.add_new_page(urlparse(url), 0) for url in arr_urls_seeds]
 
 
     @synchronized
@@ -82,12 +85,32 @@ class Scheduler():
         """
         Obtem uma nova URL por meio da fila. Essa URL é removida da fila.
         Logo após, caso o servidor não tenha mais URLs, o mesmo também é removido.
-        """    
+        """ 
+        for domain, url_list in self.dic_url_per_domain.items():
+            if domain.is_accessible():
+                domain.accessed_now()
+                
+                if not self.dic_url_per_domain[domain]:
+                    del self.dic_url_per_domain[domain]
+                
+                url, depth = url_list[0]
+                url_list.pop(0)
+                return url, depth
+            
+        time.sleep(self.TIME_LIMIT_BETWEEN_REQUESTS)
+            
         return None, None
-    
+        
 
     def can_fetch_page(self,obj_url):
         """
         Verifica, por meio do robots.txt se uma determinada URL pode ser coletada
         """
+        robot = urllib.robotparser.RobotFileParser()
+        robot.set_url(obj_url.geturl())
+        
+        if obj_url.netloc not in self.dic_robots_per_domain:
+            self.dic_robots_per_domain[obj_url.netloc] = robot.read()
+            return robot.can_fetch(self.str_usr_agent, obj_url.geturl())
+        
         return False
