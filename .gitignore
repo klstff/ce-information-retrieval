@@ -1,0 +1,7 @@
+*.pdf
+*.docx
+*.pyc
+**/Aulas
+**/Tarefas
+tp1_crawler/.ipynb_checkpoints/*
+tp1_crawler/crawler/__pycache__/*

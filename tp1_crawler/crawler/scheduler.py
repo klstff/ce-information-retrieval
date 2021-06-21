@@ -56,7 +56,7 @@ class Scheduler():
         if int_depth < self.int_depth_limit and obj_url.geturl() not in self.set_discovered_urls:
             return True
         return False
-        
+
 
     @synchronized
     def add_new_page(self,obj_url,int_depth):
@@ -67,40 +67,40 @@ class Scheduler():
         """
         #https://docs.python.org/3/library/urllib.parse.html
         if self.can_add_page(obj_url,int_depth):
-            
+
             if obj_url.netloc not in self.dic_url_per_domain:
                 domain = Domain(obj_url.netloc, self.TIME_LIMIT_BETWEEN_REQUESTS)
                 self.dic_url_per_domain[domain] = [(obj_url,int_depth)]
             else:
                 self.dic_url_per_domain[obj_url.netloc].append((obj_url,int_depth))
-                
+
             self.set_discovered_urls.add(obj_url.geturl())
             return True
-        
+
         return False
-    
+
 
     @synchronized
     def get_next_url(self):
         """
         Obtem uma nova URL por meio da fila. Essa URL é removida da fila.
         Logo após, caso o servidor não tenha mais URLs, o mesmo também é removido.
-        """ 
+        """
         for domain, url_list in self.dic_url_per_domain.items():
             if domain.is_accessible():
                 domain.accessed_now()
-                
+
                 if not self.dic_url_per_domain[domain]:
                     del self.dic_url_per_domain[domain]
-                
+
                 url, depth = url_list[0]
                 url_list.pop(0)
                 return url, depth
-            
+
         time.sleep(self.TIME_LIMIT_BETWEEN_REQUESTS)
-            
+
         return None, None
-        
+
 
     def can_fetch_page(self,obj_url):
         """
@@ -108,9 +108,9 @@ class Scheduler():
         """
         robot = urllib.robotparser.RobotFileParser()
         robot.set_url(obj_url.geturl())
-        
+
         if obj_url.netloc not in self.dic_robots_per_domain:
             self.dic_robots_per_domain[obj_url.netloc] = robot.read()
             return robot.can_fetch(self.str_usr_agent, obj_url.geturl())
-        
+
         return False

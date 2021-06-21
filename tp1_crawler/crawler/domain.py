@@ -5,7 +5,7 @@ class Domain():
 		self.time_last_access = datetime(1970,1,1)
 		self.nam_domain = nam_domain
 		self.int_time_limit_seconds = int_time_limit_between_requests
-  
+
 	@property
 	def time_since_last_access(self):
 		return datetime.now()-self.time_last_access
@@ -22,7 +22,7 @@ class Domain():
 		return hash(self.nam_domain)
 
 	def __eq__(self, domain):
-		return self.nam_domain == domain
+		return self.nam_domain == domain or str(self.nam_domain) == str(domain)
 
 	def __str__(self):
 		return self.nam_domain
