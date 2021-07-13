@@ -1,13 +1,13 @@
+import urllib.robotparser
 from util.threads import synchronized
+from urllib.parse import urlparse
 from collections import OrderedDict
 from .domain import Domain
-from urllib.parse import urlparse
-import urllib.robotparser
 import time
 
 class Scheduler():
     #tempo (em segundos) entre as requisições
-    TIME_LIMIT_BETWEEN_REQUESTS = 20
+    TIME_LIMIT_BETWEEN_REQUESTS = 30
 
     def __init__(self,str_usr_agent,int_page_limit,int_depth_limit,arr_urls_seeds):
         """
@@ -65,7 +65,6 @@ class Scheduler():
             obj_url: Objeto da classe ParseResult com a URL a ser adicionada
             int_depth: Profundidade na qual foi coletada essa URL
         """
-        #https://docs.python.org/3/library/urllib.parse.html
         if self.can_add_page(obj_url,int_depth):
 
             if obj_url.netloc not in self.dic_url_per_domain:
