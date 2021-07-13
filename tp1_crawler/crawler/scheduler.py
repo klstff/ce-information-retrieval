@@ -85,19 +85,17 @@ class Scheduler():
         Obtem uma nova URL por meio da fila. Essa URL é removida da fila.
         Logo após, caso o servidor não tenha mais URLs, o mesmo também é removido.
         """
-        for domain, url_list in self.dic_url_per_domain.items():
+        for domain, urls in self.dic_url_per_domain.items():
             if domain.is_accessible():
                 domain.accessed_now()
 
-                if not self.dic_url_per_domain[domain]:
-                    del self.dic_url_per_domain[domain]
-
-                url, depth = url_list[0]
-                url_list.pop(0)
-                return url, depth
+                if urls:
+                    obj_url, int_depth = urls.pop(0)
+                    if not urls: self.dic_url_per_domain.pop(domain)
+                    return obj_url, int_depth
+                del self.dic_url_per_domain[domain]
 
         time.sleep(self.TIME_LIMIT_BETWEEN_REQUESTS)
-
         return None, None
 
 
