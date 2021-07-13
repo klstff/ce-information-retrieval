@@ -25,12 +25,21 @@ class PageFetcher(Thread):
         """
         Retorna os links do conteúdo bin_str_content da página já requisitada obj_url
         """
-        soup = BeautifulSoup(bin_str_content,features="lxml")
-        for link in soup.select(None):
-            obj_new_url = None
-            int_new_depth = None
+        soup = BeautifulSoup(bin_str_content, features="lxml")
+        depth = int_depth
+        url = ''
 
-            yield obj_new_url,int_new_depth
+        for link in soup.select('a'):
+            if link.get("href"): url = link["href"]
+            if "http" not in url: url = obj_url.geturl() + "/" + url
+
+            new_url = urlparse(url)
+            if obj_url.netloc in url:
+                depth = int_depth + 1
+            else:
+                depth = 0
+
+            yield new_url, depth
 
 
     def crawl_new_url(self):
