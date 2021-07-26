@@ -12,28 +12,29 @@ class Index:
         self.dic_index = {}
         self.set_documents = set()
 
+
     def index(self, term:str, doc_id:int, term_freq:int):
+        self.set_documents.add(doc_id)
         if term not in self.dic_index:
-            int_term_id = None
+            int_term_id = len(self.dic_index) + 1
             self.dic_index[term] = self.create_index_entry(int_term_id)
         else:
-            int_term_id = None
+            int_term_id = self.get_term_id(term)
 
         self.add_index_occur(self.dic_index[term], doc_id, int_term_id, term_freq)
 
 
     @property
     def vocabulary(self) -> List:
-        return []
+        return self.dic_index.keys()
 
     @property
     def document_count(self) -> int:
-        return 0
+        return len(self.dic_index)
 
     @abstractmethod
     def get_term_id(self, term:str):
         raise NotImplementedError("Voce deve criar uma subclasse e a mesma deve sobrepor este método")
-
 
     @abstractmethod
     def create_index_entry(self, termo_id:int):
@@ -95,18 +96,16 @@ class HashIndex(Index):
         return self.dic_index[term][0].term_id
 
     def create_index_entry(self, termo_id:int) -> List:
-        return None
-
-    def add_index_occur(self, entry_dic_index:List[TermOccurrence], doc_id:int, term_id:int, term_freq:int):
-        entry_dic_index.append(None)
-
-    def get_occurrence_list(self,term: str)->List:
         return []
 
+    def add_index_occur(self, entry_dic_index:List[TermOccurrence], doc_id:int, term_id:int, term_freq:int):
+        entry_dic_index.append(TermOccurrence(doc_id, term_id, term_freq))
+
+    def get_occurrence_list(self,term: str)->List:
+        return self.dic_index[term] if term in self.dic_index else []
+
     def document_count_with_term(self,term:str) -> int:
-        return 0
-
-
+        return len(self.dic_index[term]) if term in self.dic_index.keys() else 0
 
 
 
@@ -167,8 +166,8 @@ class FileIndex(Index):
         gc.disable()
 
         #ordena pelo term_id, doc_id
-        
-        
+
+
         ### Abra um arquivo novo faça a ordenação externa: compar sempre a primeira posição
         ### da lista com a primeira possição do arquivo usando os métodos next_from_list e next_from_file
         ### para armazenar no novo indice ordenado
