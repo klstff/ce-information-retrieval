@@ -77,11 +77,16 @@ class TermOccurrence:
 
     def __hash__(self):
     	return hash((self.doc_id,self.term_id))
-    def __eq__(self,other_occurrence:"TermOccurrence"):
+
+    def __eq__(self, other_occurrence:"TermOccurrence"):
+        if other_occurrence:
+            return self.term_id == other_occurrence.term_id
         return False
 
-    def __lt__(self,other_occurrence:"TermOccurrence"):
-        return False
+    def __lt__(self, other_occurrence:"TermOccurrence"):
+        if not other_occurrence:
+            return True
+        return self.term_id < other_occurrence.term_id or (self.term_id == other_occurrence.term_id and self.doc_id < other_occurrence.doc_id)
 
     def __str__(self):
         return f"(term_id:{self.term_id} doc: {self.doc_id} freq: {self.term_freq})"
@@ -110,7 +115,7 @@ class HashIndex(Index):
 
 
 class TermFilePosition:
-    def __init__(self,term_id:int,  term_file_start_pos:int=None, doc_count_with_term:int = None):
+    def __init__(self,term_id:int, term_file_start_pos:int=None, doc_count_with_term:int = None):
         self.term_id = term_id
 
         #a serem definidos após a indexação
