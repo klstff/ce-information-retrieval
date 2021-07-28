@@ -12,7 +12,6 @@ class Index:
         self.dic_index = {}
         self.set_documents = set()
 
-
     def index(self, term:str, doc_id:int, term_freq:int):
         self.set_documents.add(doc_id)
         if term not in self.dic_index:
@@ -22,7 +21,6 @@ class Index:
             int_term_id = self.get_term_id(term)
 
         self.add_index_occur(self.dic_index[term], doc_id, int_term_id, term_freq)
-
 
     @property
     def vocabulary(self) -> List:
@@ -65,6 +63,7 @@ class Index:
     def __repr__(self):
         return str(self)
 
+
 @total_ordering
 class TermOccurrence:
     def __init__(self,doc_id:int,term_id:int, term_freq:int):
@@ -73,14 +72,14 @@ class TermOccurrence:
         self.term_freq = term_freq
 
     def write(self, idx_file):
-        pass
+        pickle.dump([self.doc_id, self.term_id, self.term_freq], idx_file)
 
     def __hash__(self):
     	return hash((self.doc_id,self.term_id))
 
     def __eq__(self, other_occurrence:"TermOccurrence"):
         if other_occurrence:
-            return self.term_id == other_occurrence.term_id
+            return self.term_id == other_occurrence.term_id and self.doc_id == other_occurrence.doc_id
         return False
 
     def __lt__(self, other_occurrence:"TermOccurrence"):
@@ -115,7 +114,7 @@ class HashIndex(Index):
 
 
 class TermFilePosition:
-    def __init__(self,term_id:int, term_file_start_pos:int=None, doc_count_with_term:int = None):
+    def __init__(self,term_id:int, term_file_start_pos:int=None, doc_count_with_term:int=None):
         self.term_id = term_id
 
         #a serem definidos após a indexação
@@ -124,6 +123,7 @@ class TermFilePosition:
 
     def __str__(self):
         return f"term_id: {self.term_id}, doc_count_with_term: {self.doc_count_with_term}, term_file_start_pos: {self.term_file_start_pos}"
+    
     def __repr__(self):
         return str(self)
 
@@ -136,7 +136,7 @@ class FileIndex(Index):
 
         self.lst_occurrences_tmp = []
         self.idx_file_counter = 0
-        self.str_idx_file_name = "occur_idx_file"
+        self.str_idx_file_name = None
 
     def get_term_id(self, term:str):
         return self.dic_index[term].term_id
@@ -151,52 +151,93 @@ class FileIndex(Index):
             self.save_tmp_occurrences()
 
     def next_from_list(self) -> TermOccurrence:
-        return None
+        return self.lst_occurrences_tmp.pop(0) if self.lst_occurrences_tmp else None
 
-    def next_from_file(self,file_idx) -> TermOccurrence:
-            #next_from_file = pickle.load(file_idx)
-        bytes_doc_id = file_idx.read(4)
-        if not bytes_doc_id:
+    def next_from_file(self, file_idx) -> TermOccurrence:
+        try:
+            next_from_file = pickle.load(file_idx)
+            return TermOccurrence(next_from_file[0], next_from_file[1], next_from_file[2])
+        except:
             return None
-        #seu código aqui :)
-
-        return TermOccurrence(doc_id, term_id, term_freq)
-
 
     def save_tmp_occurrences(self):
-
-        #ordena pelo term_id, doc_id
-        #Para eficiencia, todo o codigo deve ser feito com o garbage
-        #collector desabilitado
         gc.disable()
-
-        #ordena pelo term_id, doc_id
-
-
-        ### Abra um arquivo novo faça a ordenação externa: compar sempre a primeira posição
-        ### da lista com a primeira possição do arquivo usando os métodos next_from_list e next_from_file
-        ### para armazenar no novo indice ordenado
-
-
-
+        
+        # (1) ordene a lista lst_occurrences_tmp
+        self.lst_occurrences_tmp.sort()
+        
+        try:
+            file = open(self.str_idx_file_name, 'rb')
+        except:
+            file = None
+            
+        next_from_list = self.next_from_list()
+        next_from_file = self.next_from_file(file)    
+        
+        # (2) criar um arquivo novo;
+        with open('occur_index_' + str(self.idx_file_counter), 'wb') as new_file:
+            
+            # (3) compare a primeira posição da lista com a primeira posição do arquivo de índice, 
+            # sempre inserindo a ocorrencia considerada com o menor entre elas no novo arquivo.
+            while next_from_list or next_from_file:
+                if next_from_list <= next_from_file:
+                    next_from_list.write(new_file)
+                    next_from_list = self.next_from_list()
+                else:
+                    next_from_file.write(new_file)
+                    next_from_file = self.next_from_file(file)
+                    
+        if file: file.close()  
+        # (4) esse novo arquivo passará a ser o índice. 
+        # Exclua o indice antigo e limpe a lista de ocorrencias lst_occurrences_tmp.  
+        if self.str_idx_file_name: os.remove(self.str_idx_file_name)  
+        self.str_idx_file_name = 'occur_index_' + str(self.idx_file_counter) 
+        self.idx_file_counter += 1  
+        
         gc.enable()
+        
 
     def finish_indexing(self):
         if len(self.lst_occurrences_tmp) > 0:
             self.save_tmp_occurrences()
 
-        #Sugestão: faça a navegação e obetenha um mapeamento 
+        # Sugestão: faça a navegação e obetenha um mapeamento 
         # id_termo -> obj_termo armazene-o em dic_ids_por_termo
         dic_ids_por_termo = {}
-        for str_term,obj_term in self.dic_index.items():
-            pass
+        term_file_start_pos = 0
         
-        with open(self.str_idx_file_name,'rb') as idx_file:
-            #navega nas ocorrencias para atualizar cada termo em dic_ids_por_termo 
-            #apropriadamente
-            pass
+        for str_term, obj_term in self.dic_index.items():
+            dic_ids_por_termo[obj_term.term_id] = str_term
 
-    def get_occurrence_list(self,term: str)->List:
-        return []
+        with open(self.str_idx_file_name, 'rb') as idx_file:
+            next_from_file = self.next_from_file(idx_file)
+            current_pos = idx_file.tell()
+            
+            # navega nas ocorrencias para atualizar cada termo em dic_ids_por_termo apropriadamente
+            while next_from_file:
+                doc_count_with_term = 0
+                term_id = next_from_file.term_id
+                while next_from_file and next_from_file.term_id == term_id:
+                    next_from_file = self.next_from_file(idx_file)
+                    doc_count_with_term += 1
+                
+                self.dic_index[dic_ids_por_termo[term_id]] = TermFilePosition(term_id, term_file_start_pos, doc_count_with_term)
+                term_file_start_pos += current_pos * doc_count_with_term
+             
+
+    def get_occurrence_list(self, term: str)->List:
+        occurrency_list = []
+        
+        if term in self.dic_index:
+            with open(self.str_idx_file_name, "rb") as idx_file:
+                term_ocurr = self.next_from_file(idx_file)
+                term_id = self.dic_index[term].term_id
+                while term_ocurr:
+                    occurrency_list.append(term_ocurr) if term_ocurr.term_id == term_id else None
+                    term_ocurr = self.next_from_file(idx_file)
+
+        return occurrency_list
+    
     def document_count_with_term(self,term:str) -> int:
-        return 0
+        return self.dic_index[term].doc_count_with_term if term in self.dic_index else 0
+        
