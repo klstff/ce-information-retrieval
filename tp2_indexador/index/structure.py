@@ -15,7 +15,7 @@ class Index:
     def index(self, term:str, doc_id:int, term_freq:int):
         self.set_documents.add(doc_id)
         if term not in self.dic_index:
-            int_term_id = len(self.dic_index) + 1
+            int_term_id = len(self.dic_index)
             self.dic_index[term] = self.create_index_entry(int_term_id)
         else:
             int_term_id = self.get_term_id(term)
@@ -174,11 +174,7 @@ class FileIndex(Index):
         next_from_list = self.next_from_list()
         next_from_file = self.next_from_file(file)    
         
-        # (2) criar um arquivo novo;
         with open('occur_index_' + str(self.idx_file_counter), 'wb') as new_file:
-            
-            # (3) compare a primeira posição da lista com a primeira posição do arquivo de índice, 
-            # sempre inserindo a ocorrencia considerada com o menor entre elas no novo arquivo.
             while next_from_list or next_from_file:
                 if next_from_list <= next_from_file:
                     next_from_list.write(new_file)
@@ -187,9 +183,7 @@ class FileIndex(Index):
                     next_from_file.write(new_file)
                     next_from_file = self.next_from_file(file)
                     
-        if file: file.close()  
-        # (4) esse novo arquivo passará a ser o índice. 
-        # Exclua o indice antigo e limpe a lista de ocorrencias lst_occurrences_tmp.  
+        if file: file.close() 
         if self.str_idx_file_name: os.remove(self.str_idx_file_name)  
         self.str_idx_file_name = 'occur_index_' + str(self.idx_file_counter) 
         self.idx_file_counter += 1  
@@ -200,9 +194,7 @@ class FileIndex(Index):
     def finish_indexing(self):
         if len(self.lst_occurrences_tmp) > 0:
             self.save_tmp_occurrences()
-
-        # Sugestão: faça a navegação e obetenha um mapeamento 
-        # id_termo -> obj_termo armazene-o em dic_ids_por_termo
+            
         dic_ids_por_termo = {}
         term_file_start_pos = 0
         
@@ -213,7 +205,6 @@ class FileIndex(Index):
             next_from_file = self.next_from_file(idx_file)
             current_pos = idx_file.tell()
             
-            # navega nas ocorrencias para atualizar cada termo em dic_ids_por_termo apropriadamente
             while next_from_file:
                 doc_count_with_term = 0
                 term_id = next_from_file.term_id
